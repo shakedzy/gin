@@ -22,7 +22,7 @@ class DeepQNetworkModel:
         Create a new Deep Q Network model
         :param session: a tf.Session to be used
         :param layers_size: a list of numbers, representing the number of nodes in each layer of the network
-        :param memory: an instance of type memories.Memory
+        :param memory: an instance of type memory_buffers.Memory
         :param default_batch_size: the default batch size for training
         :param default_learning_rate: the default learning rate for training
         :param default_epsilon: the default epsilon to be used for the eps-greedy policy
@@ -63,8 +63,8 @@ class DeepQNetworkModel:
         :param batch_size: a batch_size overriding default_batch_size
         :return: None if no learning was made, or the cost of learning was made
         """
-        current_batch_size = batch_size or self.default_batch_size
-        if self.memory.counter % current_batch_size != 0:
+        current_batch_size = batch_size if batch_size is not None else self.default_batch_size
+        if self.memory.counter % current_batch_size != 0 or self.memory.counter == 0:
             logging.debug('Passing on learning procedure')
             pass
         else:
@@ -76,7 +76,7 @@ class DeepQNetworkModel:
             for i in range(terminals.size):
                 if terminals[i]:
                     qt[i] = np.zeros(self.output_size)
-            lr = learning_rate or self.default_learning_rate
+            lr = learning_rate if learning_rate is not None else self.default_learning_rate
             _, cost = self.session.run([self.q_network.optimizer, self.q_network.cost],
                                        feed_dict={self.q_network.states: self.__fetch_from_batch(batch, 'state'),
                                                   self.q_network.r: self.__fetch_from_batch(batch, 'reward'),
@@ -103,7 +103,7 @@ class DeepQNetworkModel:
         :param epsilon: an epsilon value to be used for the eps-greedy policy, overriding default_epsilon
         :return: a number representing the selected action
         """
-        eps = epsilon or self.default_epsilon
+        eps = epsilon if epsilon is not None else self.default_epsilon
         rnd = random.random()
         if rnd < eps or self.memory.counter < self.min_samples_for_predictions:
             action = random.randint(0, self.output_size - 1)
