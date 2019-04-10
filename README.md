@@ -17,16 +17,20 @@ pip install .
 A simple implementation of a Deep Q-Network model (an introduction to this model can be found 
 [in this blogpost](https://medium.com/@shakedzy/qrash-course-deep-q-networks-from-the-ground-up-1bbda41d3677)). 
 
-Simple usage example:
+Simple usage example (of [this notebook exercise](https://github.com/shakedzy/notebooks/tree/master/q_learning_and_dqn)):
 ```
 from warehouse.dqn import DeepQNetworkModel
 model = DeepQNetworkModel(session=tf.Session(),
-                          layers_size=[9,20,50,10,9],
+                          layers_size=[4,10,20,10,4],
                           memory=memory_buffer.ExperienceReplayMemory(1000),
                           default_batch_size=250,
                           default_learning_rate=0.001,
                           default_epsilon=0.1,
                           gamma=0.99)
+model.add_to_memory(state=[1,1,0,0], action=3, reward=1, next_state=[1,1,0,1], is_terminal_state=False)
+model.learn()
+best_action = model.act([1,1,0,1])
+>>> best_action = 2  # a numeric representation of the selected action
 ```
 Extensions:
 * _Double Deep Q Network:_ Based on [[1]](#ref1). The actual Q-target update rule is performed in the following way:
