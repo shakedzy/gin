@@ -30,6 +30,7 @@ model = DeepQNetworkModel(session=tf.Session(),
 model.add_to_memory(state=[1,1,0,0], action=3, reward=1, next_state=[1,1,0,1], is_terminal_state=False)
 model.learn()
 best_action = model.act([1,1,0,1])
+
 >>> best_action = 2  # a numeric representation of the selected action
 ```
 Extensions:
