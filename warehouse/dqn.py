@@ -16,8 +16,9 @@ class DeepQNetworkModel:
                  min_samples_for_predictions=0,
                  double_dqn=False,
                  learning_procedures_to_q_target_switch=1000,
-                 tau=0,
-                 maximum_entropy=False):
+                 tau=1,
+                 maximize_entropy=False,
+                 var_scope_name=None):
         """
         Create a new Deep Q Network model
         :param session: a tf.Session to be used
@@ -33,10 +34,14 @@ class DeepQNetworkModel:
         :param learning_procedures_to_q_target_switch: how many learning procedures are required before the main network
                  is copied to the q-target network. relevant only if double_dqn = True.
         :param tau: a number in the range [0,1] determining the mixture of the main network weights and q-target weights
-                 which will be inserted to q-target. tau=0 means only the q-target values will be used, tau=1 is
-                 technically the same as no q-target as it will be identical to the main network.
+                 which will be inserted to q-target. tau=1 copies the main network weights to the q-target network as
+                 they are (as should be according to the original paper). tau=0 will keep q-target weights unchanged,
+                 meaning no knowledge will be transferred.
                  relevant only if double_dqn = True.
-        :param maximum_entropy: boolean, determining if the network should try to optimize the Q values entropy
+        :param maximize_entropy: boolean, determining if the network should try to optimize the Q values entropy
+        :param var_scope_name: when more than one model are generated, each needs its own variable scope. If the two
+                 or more models are suppose to share their weights, they both should have the same variable scope name.
+                 This is irrelevant when only one instance of the model is used.
         """
         self.output_size = layers_size[-1]
         self.session = session
@@ -46,22 +51,37 @@ class DeepQNetworkModel:
         self.min_samples_for_predictions = min_samples_for_predictions
         self.learning_procedures_to_q_target_switch = learning_procedures_to_q_target_switch
         self.tau = tau
-        self.maximum_entropy = maximum_entropy
+        self.maximize_entropy = maximize_entropy
         self.memory = memory
-        self.q_network = QNetwork(input_size=layers_size[0], output_size=self.output_size,
-                                  hidden_layers_size=layers_size[1:-1], gamma=gamma)
+        self.q_network = self.__create_q_network(input_size=layers_size[0], output_size=self.output_size,
+                                                 hidden_layers_size=layers_size[1:-1], gamma=gamma,
+                                                 maximize_entropy=maximize_entropy,
+                                                 var_scope_name=var_scope_name,
+                                                 layer_name_suffix='qnn')
         if double_dqn:
-            self.target_q_network = QNetwork(input_size=layers_size[0], output_size=self.output_size,
-                                             hidden_layers_size=layers_size[1:-1], gamma=gamma)
+            self.target_q_network = self.__create_q_network(input_size=layers_size[0], output_size=self.output_size,
+                                                            hidden_layers_size=layers_size[1:-1], gamma=gamma,
+                                                            maximize_entropy=maximize_entropy,
+                                                            var_scope_name=var_scope_name,
+                                                            layer_name_suffix='qt')
         else:
             self.target_q_network = None
+
+    def __create_q_network(self, input_size, output_size, hidden_layers_size, gamma, maximize_entropy,
+                           var_scope_name, layer_name_suffix):
+        scope_name = var_scope_name or tf.get_variable_scope().name
+        reuse = tf.AUTO_REUSE if var_scope_name else False
+        with tf.variable_scope(scope_name, reuse=reuse):
+            qnn = QNetwork(input_size=input_size, output_size=output_size, hidden_layers_size=hidden_layers_size,
+                           gamma=gamma, maximize_entropy=maximize_entropy, layer_name_suffix=layer_name_suffix)
+        return qnn
 
     def learn(self, learning_rate=None, batch_size=None):
         """
         Initialize a learning attempt
         :param learning_rate: a learning rate overriding default_learning_rate
         :param batch_size: a batch_size overriding default_batch_size
-        :return: None if no learning was made, or the cost of learning was made
+        :return: None if no learning was made, or the cost of learning if it did happen
         """
         current_batch_size = batch_size if batch_size is not None else self.default_batch_size
         if self.memory.counter % current_batch_size != 0 or self.memory.counter == 0:
@@ -140,21 +160,25 @@ class QNetwork:
     """
     A Q-Network implementation
     """
-    def __init__(self, input_size, output_size, hidden_layers_size, gamma):
+    def __init__(self, input_size, output_size, hidden_layers_size, gamma, maximize_entropy, layer_name_suffix):
         self.q_target = tf.placeholder(shape=(None, output_size), dtype=tf.float32)
         self.r = tf.placeholder(shape=None, dtype=tf.float32)
         self.states = tf.placeholder(shape=(None, input_size), dtype=tf.float32)
         self.enumerated_actions = tf.placeholder(shape=(None, 2), dtype=tf.int32)
         self.learning_rate = tf.placeholder(shape=[], dtype=tf.float32)
         layer = self.states
-        for l in hidden_layers_size:
-            layer = tf.layers.dense(inputs=layer, units=l, activation=tf.nn.relu,
+        for i in range(len(hidden_layers_size)):
+            layer = tf.layers.dense(inputs=layer, units=hidden_layers_size[i], activation=tf.nn.relu,
+                                    name='{}_dense_layer_{}'.format(layer_name_suffix,i),
                                     kernel_initializer=tf.contrib.layers.xavier_initializer())
         self.output = tf.layers.dense(inputs=layer, units=output_size,
+                                      name='{}_dense_layer_{}'.format(layer_name_suffix,len(hidden_layers_size)),
                                       kernel_initializer=tf.contrib.layers.xavier_initializer())
         self.predictions = tf.gather_nd(self.output, indices=self.enumerated_actions)
-        self.labels = self.r + (gamma * tf.reduce_max(self.q_target, axis=1))
+        if maximize_entropy:
+            self.future_q = tf.log(tf.reduce_sum(tf.exp(self.q_target), axis=1))
+        else:
+            self.future_q = tf.reduce_max(self.q_target, axis=1)
+        self.labels = self.r + (gamma * self.future_q)
         self.cost = tf.reduce_mean(tf.losses.mean_squared_error(labels=self.labels, predictions=self.predictions))
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.cost)
-
-

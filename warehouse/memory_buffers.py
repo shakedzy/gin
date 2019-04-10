@@ -3,7 +3,7 @@ from collections import deque
 from abc import abstractmethod
 
 
-class Memory:
+class MemoryTemplate:
     """
     Memory abstract class
     """
@@ -41,7 +41,7 @@ class Memory:
         return result
 
 
-class ExperienceReplayMemory(Memory):
+class ExperienceReplayMemory(MemoryTemplate):
     """
     A cyclic-buffer Experience Replay memory
     """
@@ -68,7 +68,7 @@ class ExperienceReplayMemory(Memory):
         return random.sample(self._memory, n)
 
 
-class ReservoirSamplingMemory(Memory):
+class ReservoirSamplingMemory(MemoryTemplate):
     """
     Reservoir Sampling based memory buffer
     """
