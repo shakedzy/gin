@@ -39,7 +39,11 @@ Extensions:
 as suggested [here](https://github.com/awjuliani/DeepRL-Agents/blob/master/Double-Dueling-DQN.ipynb). 
 `tau=1` will yield the theoretical Double Deep Q-Network model.
 
-* _Maximun Entropy:_ Based on [[2]](#ref2) and designed according to this post.
+* _Maximun Entropy:_ Based on [[2]](#ref2) and designed according to 
+[this post](https://bair.berkeley.edu/blog/2017/10/06/soft-q-learning/) to use the Soft Bellman Equation:
+![soft_bellman](readme_images/soft_bellman.png)  
+See [my blogpost](https://medium.com/@shakedzy/open-minded-ai-improving-performance-by-keeping-all-options-on-the-table-ddefce50913a) 
+on this matter to.
 
 ## Auxiliaries:
 ### Memory Buffers:
