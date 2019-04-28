@@ -1,7 +1,7 @@
 # Gin
 
-This repository of Reinforcement Learning models to train your computer.
-Named after my best training project so far - Gin the dog.
+This is a repository of Reinforcement Learning models designed to train your computer.
+Named after my favorite training project so far - Gin the dog.
 
 ![gin_dog](readme_images/gin.jpg) 
 
