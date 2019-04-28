@@ -1,12 +1,14 @@
-# Models Warehouse
+# Gin
 
-This repository contains different Reinforcement Learning models.
+This repository of Reinforcement Learning models to train your computer.
+Named after my best training project so far - Gin the dog.
+
+![gin_dog](readme_images/gin.jpg) 
 
 ### Installation:
 ```
-git clone https://github.com/shakedzy/warehouse.git
-cd warehouse
-pip install .
+git clone https://github.com/shakedzy/gin.git
+pip install ./gin
 ```
 **Requirements:**
 * `numpy`
@@ -19,7 +21,7 @@ A simple implementation of a Deep Q-Network model (an introduction to this model
 
 Simple usage example (of [this notebook exercise](https://github.com/shakedzy/notebooks/tree/master/q_learning_and_dqn)):
 ```
-from warehouse.dqn import DeepQNetworkModel
+from gin.dqn import DeepQNetworkModel
 model = DeepQNetworkModel(session=tf.Session(),
                           layers_size=[4,10,20,10,4],
                           memory=memory_buffer.ExperienceReplayMemory(1000),
